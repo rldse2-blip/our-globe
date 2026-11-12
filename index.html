@@ -1,0 +1,721 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#05080d">
+<title>OUR GLOBE — One Globe. Millions of Owners.</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+margin:0;background:#05080d;color:white;
+font-family:Arial,Helvetica,sans-serif;text-align:center
+}
+header{
+max-width:1200px;margin:auto;padding:25px 22px;
+display:flex;align-items:center;justify-content:space-between
+}
+.logo{font-size:23px;font-weight:800;letter-spacing:4px}
+nav{font-size:11px;color:#8d9aab;letter-spacing:2px}
+.hero{padding:45px 15px 5px}
+.eyebrow{font-size:11px;letter-spacing:4px;color:#7e9aab}
+h1{font-size:clamp(35px,7vw,72px);line-height:1.05;letter-spacing:-2px;margin:22px 0}
+.subtitle{color:#a0adbb;font-size:13px;letter-spacing:2px}
+.globe-wrap{width:min(94vw,800px);margin:20px auto 5px;position:relative}
+canvas{width:100%;height:auto;display:block;touch-action:none;cursor:grab}
+canvas:active{cursor:grabbing}
+.mode-label{
+font-size:10px;letter-spacing:3px;color:#91aabd;
+margin:5px auto 12px
+}
+.zoom-controls{display:flex;justify-content:center;gap:12px;margin:10px auto 25px}
+.zoom-controls button{width:48px;height:42px;padding:0;font-size:22px}
+button{
+border:1px solid rgba(255,255,255,.15);border-radius:3px;
+background:white;color:#05080d;padding:15px 25px;
+font-size:12px;font-weight:bold;letter-spacing:2px;cursor:pointer
+}
+button:hover{background:#b8d8c4}
+.primary{margin:10px auto 25px}
+.stats{
+max-width:950px;margin:35px auto;padding:35px 15px;
+display:flex;justify-content:center;gap:65px;flex-wrap:wrap;
+border-top:1px solid #1b2935;border-bottom:1px solid #1b2935
+}
+.stat strong{display:block;font-size:28px;margin-bottom:8px}
+.stat span{font-size:10px;letter-spacing:2px;color:#8997a8}
+.buy-section{padding:55px 15px 80px}
+.buy-section h2{font-size:30px;letter-spacing:2px}
+.buy-section p{color:#98a6b5;line-height:1.7}
+.selection-panel{
+width:min(92%,500px);margin:25px auto 10px;padding:22px;
+border:1px solid #263847;background:#0a121c
+}
+.selection-title{font-size:11px;letter-spacing:3px;color:#a6bacb;margin-bottom:18px}
+.selection-numbers{display:flex;justify-content:space-around;gap:12px;flex-wrap:wrap}
+.selection-item strong{display:block;font-size:25px;margin-bottom:6px}
+.selection-item span{font-size:10px;color:#8997a8;letter-spacing:1px}
+.price{color:#e8c66c}
+.clear-button{
+margin-top:20px;padding:11px 20px;background:transparent;
+border:1px solid #536170;color:white;font-size:10px
+}
+.hint{font-size:11px;color:#75879a;line-height:1.6;margin:15px auto;max-width:440px}
+footer{padding:30px;color:#687687;font-size:11px;letter-spacing:1px}
+@media(max-width:600px){
+header{padding:20px 15px}.logo{font-size:18px}
+nav{font-size:9px}.stats{gap:35px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="logo">OUR GLOBE</div>
+<nav>ONE PLANET. ONE COMMUNITY.</nav>
+</header>
+
+<section class="hero">
+<p class="eyebrow">A WORLD OWNED BY EVERYONE</p>
+<h1>ONE GLOBE.<br>MILLIONS OF OWNERS.</h1>
+<p class="subtitle">OWN YOUR PIXEL. COLOR OUR WORLD.</p>
+</section>
+
+<div class="globe-wrap">
+<canvas id="globe" width="800" height="800"></canvas>
+</div>
+
+<div class="mode-label" id="modeLabel">3D GLOBE VIEW</div>
+
+<div class="zoom-controls">
+<button id="zoomOut" aria-label="Zoom out">−</button>
+<button id="zoomIn" aria-label="Zoom in">+</button>
+</div>
+
+<button class="primary" onclick="document.getElementById('buy').scrollIntoView({behavior:'smooth'})">
+BUY PIXELS
+</button>
+
+<section class="stats">
+<div class="stat"><strong>10,000,000</strong><span>TOTAL PIXELS</span></div>
+<div class="stat"><strong>€0.10</strong><span>PRICE PER PIXEL</span></div>
+<div class="stat"><strong>10,000,000</strong><span>AVAILABLE PIXELS</span></div>
+</section>
+
+<section class="buy-section" id="buy">
+<h2>YOUR PIXEL. YOUR COLOR.</h2>
+<p>Become part of a world created by millions.<br>Own a small piece of our shared planet.</p>
+
+<div class="selection-panel">
+<div class="selection-title">YOUR PIXEL SELECTION</div>
+<div class="selection-numbers">
+<div class="selection-item">
+<strong id="selectedCount">0</strong>
+<span>SELECTED PIXELS</span>
+</div>
+<div class="selection-item">
+<strong class="price" id="selectedPrice">€0.00</strong>
+<span>TOTAL PRICE</span>
+</div>
+</div>
+<button class="clear-button" id="clearSelection">CLEAR SELECTION</button>
+</div>
+
+<p class="hint">
+Tap to select pixels. Drag to rotate the globe or move the flat map.
+Use two fingers to zoom.
+</p>
+</section>
+
+<footer>© 2026 OUR GLOBE — ONE WORLD, MILLIONS OF OWNERS.</footer>
+
+<script>
+const canvas=document.getElementById("globe");
+const ctx=canvas.getContext("2d");
+
+const W=800,H=800,cx=400,cy=400;
+const GRID_WIDTH=4000;
+const GRID_HEIGHT=2500;
+const TOTAL_PIXELS=GRID_WIDTH*GRID_HEIGHT;
+const PIXEL_PRICE=0.10;
+
+const globeRadius=310;
+
+let rotation=0;
+let tilt=0.15;
+let zoom=1;
+let mapZoom=1;
+let mapX=0;
+let mapY=0;
+let mode="globe";
+let loading=true;
+let mapError=false;
+
+let landPolygons=[];
+let countryPolygons=[];
+let points=[];
+
+const selectedPixels=new Set();
+const pointers=new Map();
+
+let dragging=false;
+let lastX=0,lastY=0;
+let pointerStart=null;
+let gestureMoved=false;
+let multiTouch=false;
+let lastPinchDistance=0;
+
+const MAP_W=760;
+const MAP_H=475;
+const MAP_X=20;
+const MAP_Y=162.5;
+
+function pointInRing(lon,lat,ring){
+let inside=false;
+for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+const xi=ring[i][0],yi=ring[i][1];
+const xj=ring[j][0],yj=ring[j][1];
+if((yi>lat)!==(yj>lat)&&
+lon<(xj-xi)*(lat-yi)/(yj-yi)+xi)inside=!inside;
+}
+return inside;
+}
+
+function createPolygons(data){
+const result=[];
+for(const feature of data.features||[]){
+const g=feature.geometry;
+if(!g)continue;
+const polys=g.type==="Polygon"?[g.coordinates]:
+g.type==="MultiPolygon"?g.coordinates:[];
+for(const polygon of polys){
+if(!polygon.length)continue;
+const ring=polygon[0];
+result.push({
+rings:polygon,
+minLon:Math.min(...ring.map(p=>p[0])),
+maxLon:Math.max(...ring.map(p=>p[0])),
+minLat:Math.min(...ring.map(p=>p[1])),
+maxLat:Math.max(...ring.map(p=>p[1]))
+});
+}
+}
+return result;
+}
+
+function isLand(lon,lat,polygons){
+for(const p of polygons){
+if(lon<p.minLon||lon>p.maxLon||lat<p.minLat||lat>p.maxLat)continue;
+if(!pointInRing(lon,lat,p.rings[0]))continue;
+let hole=false;
+for(let i=1;i<p.rings.length;i++){
+if(pointInRing(lon,lat,p.rings[i])){hole=true;break;}
+}
+if(!hole)return true;
+}
+return false;
+}
+
+async function loadEarth(){
+try{
+const [landResponse,countryResponse]=await Promise.all([
+fetch("https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson"),
+fetch("https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson")
+]);
+
+if(!landResponse.ok||!countryResponse.ok)throw new Error("Map data unavailable");
+
+const landData=await landResponse.json();
+const countryData=await countryResponse.json();
+
+landPolygons=createPolygons(landData);
+countryPolygons=createPolygons(countryData);
+
+const step=0.8;
+for(let lat=-85;lat<=85;lat+=step){
+for(let lon=-180;lon<180;lon+=step){
+const a=lat*Math.PI/180;
+const b=lon*Math.PI/180;
+points.push({
+x:Math.cos(a)*Math.sin(b),
+y:Math.sin(a),
+z:Math.cos(a)*Math.cos(b),
+land:isLand(lon,lat,landPolygons)
+});
+}
+}
+loading=false;
+}catch(error){
+console.error(error);
+mapError=true;
+loading=false;
+}
+}
+
+function updateMode(){
+const next=zoom>=1.8?"map":"globe";
+if(next!==mode){
+mode=next;
+document.getElementById("modeLabel").textContent=
+mode==="globe"?"3D GLOBE VIEW":"2D PIXEL WORLD MAP";
+}
+}
+
+function changeZoom(amount){
+if(mode==="globe"){
+zoom=Math.max(.75,Math.min(2.8,zoom*amount));
+if(zoom>=1.8){
+mapZoom=Math.max(1,mapZoom*1.15);
+}
+}else{
+mapZoom=Math.max(1,Math.min(24,mapZoom*amount));
+if(mapZoom<=1.02&&amount<1){
+zoom=1.75;
+}
+}
+updateMode();
+}
+
+function pixelToCoordinates(id){
+const row=Math.floor(id/GRID_WIDTH);
+const col=id%GRID_WIDTH;
+const lon=(col+.5)/GRID_WIDTH*360-180;
+const lat=90-(row+.5)/GRID_HEIGHT*180;
+return {lon,lat};
+}
+
+function projectGlobe(lon,lat,radius){
+const a=lat*Math.PI/180;
+const b=lon*Math.PI/180;
+const px=Math.cos(a)*Math.sin(b);
+const py=Math.sin(a);
+const pz=Math.cos(a)*Math.cos(b);
+
+const cr=Math.cos(rotation),sr=Math.sin(rotation);
+const ct=Math.cos(tilt),st=Math.sin(tilt);
+
+const x=px*cr+pz*sr;
+const z=-px*sr+pz*cr;
+const y=py*ct-z*st;
+const depth=py*st+z*ct;
+
+if(depth<=0)return null;
+return {x:cx+x*radius,y:cy-y*radius,depth};
+}
+
+function screenToGlobePixel(sx,sy){
+const radius=globeRadius*zoom;
+const x=(sx-cx)/radius;
+const y=(cy-sy)/radius;
+const d=x*x+y*y;
+if(d>1)return null;
+
+const z2=Math.sqrt(1-d);
+const ct=Math.cos(tilt),st=Math.sin(tilt);
+const py=y*ct+z2*st;
+const z=-y*st+z2*ct;
+const cr=Math.cos(rotation),sr=Math.sin(rotation);
+const px=x*cr-z*sr;
+const pz=x*sr+z*cr;
+
+const lat=Math.asin(Math.max(-1,Math.min(1,py)))*180/Math.PI;
+const lon=Math.atan2(px,pz)*180/Math.PI;
+return coordinatesToPixel(lon,lat);
+}
+
+function coordinatesToPixel(lon,lat){
+let col=Math.floor((lon+180)/360*GRID_WIDTH);
+let row=Math.floor((90-lat)/180*GRID_HEIGHT);
+col=Math.max(0,Math.min(GRID_WIDTH-1,col));
+row=Math.max(0,Math.min(GRID_HEIGHT-1,row));
+return row*GRID_WIDTH+col;
+}
+
+function mapBounds(){
+const w=MAP_W*mapZoom;
+const h=MAP_H*mapZoom;
+return {
+x:cx-w/2+mapX,
+y:cy-h/2+mapY,
+w,h
+};
+}
+
+function screenToMapPixel(sx,sy){
+const b=mapBounds();
+const nx=(sx-b.x)/b.w;
+const ny=(sy-b.y)/b.h;
+if(nx<0||nx>=1||ny<0||ny>=1)return null;
+const lon=nx*360-180;
+const lat=90-ny*180;
+return coordinatesToPixel(lon,lat);
+}
+
+function mapPosition(lon,lat){
+const b=mapBounds();
+return {
+x:b.x+(lon+180)/360*b.w,
+y:b.y+(90-lat)/180*b.h
+};
+}
+
+function updateSelectionUI(){
+const n=selectedPixels.size;
+document.getElementById("selectedCount").textContent=n.toLocaleString("en-US");
+document.getElementById("selectedPrice").textContent="€"+(n*PIXEL_PRICE).toFixed(2);
+}
+
+function selectAt(sx,sy){
+const id=mode==="globe"
+?screenToGlobePixel(sx,sy)
+:screenToMapPixel(sx,sy);
+if(id===null)return;
+if(selectedPixels.has(id))selectedPixels.delete(id);
+else selectedPixels.add(id);
+updateSelectionUI();
+}
+
+function drawCountryBordersGlobe(radius){
+ctx.save();
+ctx.lineWidth=.8;
+ctx.strokeStyle="rgba(225,240,235,.8)";
+
+for(const polygon of countryPolygons){
+for(const ring of polygon.rings){
+let drawing=false;
+ctx.beginPath();
+
+for(let i=0;i<ring.length;i++){
+const a=ring[i];
+const b=ring[(i+1)%ring.length];
+const distance=Math.max(Math.abs(b[0]-a[0]),Math.abs(b[1]-a[1]));
+const steps=Math.max(1,Math.ceil(distance/2));
+
+for(let s=0;s<=steps;s++){
+const t=s/steps;
+const lon=a[0]+(b[0]-a[0])*t;
+const lat=a[1]+(b[1]-a[1])*t;
+const pos=projectGlobe(lon,lat,radius);
+
+if(pos){
+if(!drawing){ctx.moveTo(pos.x,pos.y);drawing=true;}
+else ctx.lineTo(pos.x,pos.y);
+}else{
+drawing=false;
+}
+}
+}
+ctx.stroke();
+}
+}
+ctx.restore();
+}
+
+function drawSelectedGlobe(radius){
+ctx.save();
+for(const id of selectedPixels){
+const c=pixelToCoordinates(id);
+const p=projectGlobe(c.lon,c.lat,radius);
+if(!p)continue;
+ctx.beginPath();
+ctx.arc(p.x,p.y,4.2,0,Math.PI*2);
+ctx.fillStyle="#f4c95d";
+ctx.fill();
+ctx.strokeStyle="#fff0b3";
+ctx.lineWidth=1.3;
+ctx.stroke();
+}
+ctx.restore();
+}
+
+function drawGlobe(){
+const radius=globeRadius*zoom;
+ctx.clearRect(0,0,W,H);
+
+const glow=ctx.createRadialGradient(cx,cy,radius*.7,cx,cy,radius+60);
+glow.addColorStop(0,"rgba(20,90,140,0)");
+glow.addColorStop(1,"rgba(20,100,160,.2)");
+ctx.fillStyle=glow;
+ctx.fillRect(0,0,W,H);
+
+const ocean=ctx.createRadialGradient(
+cx-radius*.35,cy-radius*.42,20,cx,cy,radius
+);
+ocean.addColorStop(0,"#28749a");
+ocean.addColorStop(.55,"#103d60");
+ocean.addColorStop(1,"#020916");
+
+ctx.beginPath();
+ctx.arc(cx,cy,radius,0,Math.PI*2);
+ctx.fillStyle=ocean;
+ctx.fill();
+
+ctx.save();
+ctx.beginPath();
+ctx.arc(cx,cy,radius,0,Math.PI*2);
+ctx.clip();
+
+for(const p of points){
+const cr=Math.cos(rotation),sr=Math.sin(rotation);
+const ct=Math.cos(tilt),st=Math.sin(tilt);
+const x=p.x*cr+p.z*sr;
+const z=-p.x*sr+p.z*cr;
+const y=p.y*ct-z*st;
+const depth=p.y*st+z*ct;
+if(depth<=0)continue;
+
+const sx=cx+x*radius;
+const sy=cy-y*radius;
+if(p.land){
+ctx.fillStyle=depth>.7?"#83c99a":"#397c59";
+ctx.fillRect(sx-1.5,sy-1.5,3.2,3.2);
+}else{
+ctx.fillStyle="rgba(100,175,210,.16)";
+ctx.fillRect(sx,sy,1.2,1.2);
+}
+}
+
+drawCountryBordersGlobe(radius);
+drawSelectedGlobe(radius);
+ctx.restore();
+
+ctx.beginPath();
+ctx.arc(cx,cy,radius,0,Math.PI*2);
+ctx.strokeStyle="rgba(100,190,225,.65)";
+ctx.lineWidth=2;
+ctx.stroke();
+}
+
+function drawFlatMap(){
+ctx.clearRect(0,0,W,H);
+const b=mapBounds();
+
+// Background
+ctx.fillStyle="#071321";
+ctx.fillRect(0,0,W,H);
+
+// Map area
+ctx.save();
+ctx.beginPath();
+ctx.rect(0,0,W,H);
+ctx.clip();
+
+// Subtle ocean grid
+ctx.fillStyle="#102c43";
+ctx.fillRect(b.x,b.y,b.w,b.h);
+
+// Draw countries
+for(const polygon of countryPolygons){
+for(const ring of polygon.rings){
+if(ring.length<3)continue;
+ctx.beginPath();
+
+for(let i=0;i<ring.length;i++){
+const p=mapPosition(ring[i][0],ring[i][1]);
+if(i===0)ctx.moveTo(p.x,p.y);
+else ctx.lineTo(p.x,p.y);
+}
+ctx.closePath();
+ctx.fillStyle="#397c59";
+ctx.fill();
+ctx.strokeStyle="rgba(220,239,225,.75)";
+ctx.lineWidth=Math.max(.55,1/mapZoom);
+ctx.stroke();
+}
+}
+
+// Draw pixel grid only when zoom makes it useful
+if(mapZoom>=2.5){
+const cellW=b.w/GRID_WIDTH;
+const cellH=b.h/GRID_HEIGHT;
+const step=Math.max(1,Math.ceil(1.5/Math.min(cellW,cellH)));
+
+ctx.strokeStyle="rgba(210,230,240,.22)";
+ctx.lineWidth=.5;
+
+for(let row=0;row<GRID_HEIGHT;row+=step){
+const y=b.y+row*cellH;
+ctx.beginPath();
+ctx.moveTo(b.x,y);
+ctx.lineTo(b.x+b.w,y);
+ctx.stroke();
+}
+for(let col=0;col<GRID_WIDTH;col+=step){
+const x=b.x+col*cellW;
+ctx.beginPath();
+ctx.moveTo(x,b.y);
+ctx.lineTo(x,b.y+b.h);
+ctx.stroke();
+}
+}
+
+// Selected pixel markers
+for(const id of selectedPixels){
+const c=pixelToCoordinates(id);
+const p=mapPosition(c.lon,c.lat);
+const cellW=b.w/GRID_WIDTH;
+const cellH=b.h/GRID_HEIGHT;
+const size=Math.max(3,Math.min(12,Math.max(cellW,cellH)*1.5));
+ctx.fillStyle="#f4c95d";
+ctx.fillRect(p.x-size/2,p.y-size/2,size,size);
+ctx.strokeStyle="#fff0b3";
+ctx.lineWidth=1;
+ctx.strokeRect(p.x-size/2,p.y-size/2,size,size);
+}
+
+ctx.restore();
+
+// Map frame
+ctx.strokeStyle="rgba(100,190,225,.5)";
+ctx.lineWidth=1;
+ctx.strokeRect(b.x,b.y,b.w,b.h);
+
+ctx.fillStyle="#a8bac9";
+ctx.font="10px Arial";
+ctx.textAlign="center";
+ctx.fillText("WORLD PIXEL MAP — 4000 × 2500",400,30);
+}
+
+function draw(){
+if(mode==="globe")drawGlobe();
+else drawFlatMap();
+
+if(loading){
+ctx.fillStyle="white";
+ctx.font="18px Arial";
+ctx.textAlign="center";
+ctx.fillText("LOADING EARTH...",400,400);
+}
+if(mapError){
+ctx.fillStyle="#ffb0a0";
+ctx.font="13px Arial";
+ctx.textAlign="center";
+ctx.fillText("MAP DATA COULD NOT BE LOADED",400,440);
+}
+}
+
+function animate(){
+if(mode==="globe"&&!dragging)rotation+=.0025;
+draw();
+requestAnimationFrame(animate);
+}
+
+function screenCoordinates(e){
+const rect=canvas.getBoundingClientRect();
+return {
+x:(e.clientX-rect.left)*W/rect.width,
+y:(e.clientY-rect.top)*H/rect.height
+};
+}
+
+canvas.addEventListener("wheel",e=>{
+e.preventDefault();
+changeZoom(e.deltaY<0?1.12:.89);
+},{passive:false});
+
+document.getElementById("zoomIn").addEventListener("click",()=>{
+changeZoom(1.25);
+});
+document.getElementById("zoomOut").addEventListener("click",()=>{
+changeZoom(.8);
+});
+document.getElementById("clearSelection").addEventListener("click",()=>{
+selectedPixels.clear();
+updateSelectionUI();
+});
+
+canvas.addEventListener("pointerdown",e=>{
+pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+canvas.setPointerCapture(e.pointerId);
+
+if(pointers.size===1){
+dragging=true;
+lastX=e.clientX;
+lastY=e.clientY;
+pointerStart={x:e.clientX,y:e.clientY,id:e.pointerId};
+gestureMoved=false;
+multiTouch=false;
+}else{
+multiTouch=true;
+pointerStart=null;
+gestureMoved=true;
+dragging=false;
+const p=[...pointers.values()];
+lastPinchDistance=Math.hypot(p[1].x-p[0].x,p[1].y-p[0].y);
+}
+});
+
+canvas.addEventListener("pointermove",e=>{
+if(!pointers.has(e.pointerId))return;
+pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+
+if(pointerStart&&pointerStart.id===e.pointerId){
+if(Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)>6)
+gestureMoved=true;
+}
+
+if(pointers.size===2){
+const p=[...pointers.values()];
+const distance=Math.hypot(p[1].x-p[0].x,p[1].y-p[0].y);
+if(lastPinchDistance>0)changeZoom(distance/lastPinchDistance);
+lastPinchDistance=distance;
+return;
+}
+
+if(!dragging||pointers.size!==1)return;
+
+const dx=e.clientX-lastX;
+const dy=e.clientY-lastY;
+
+if(mode==="globe"){
+rotation+=dx*.008;
+tilt=Math.max(-1.1,Math.min(1.1,tilt+dy*.004));
+}else{
+mapX+=dx*W/canvas.getBoundingClientRect().width;
+mapY+=dy*H/canvas.getBoundingClientRect().height;
+}
+
+lastX=e.clientX;
+lastY=e.clientY;
+});
+
+function endPointer(e){
+const click=
+pointerStart&&pointerStart.id===e.pointerId&&
+!gestureMoved&&!multiTouch&&pointers.size===1;
+
+if(click){
+const p=screenCoordinates(e);
+selectAt(p.x,p.y);
+}
+
+pointers.delete(e.pointerId);
+
+if(pointers.size===0){
+dragging=false;
+pointerStart=null;
+lastPinchDistance=0;
+multiTouch=false;
+}else if(pointers.size===1){
+const p=[...pointers.values()][0];
+lastX=p.x;lastY=p.y;
+dragging=true;
+pointerStart=null;
+multiTouch=true;
+lastPinchDistance=0;
+}
+}
+
+canvas.addEventListener("pointerup",endPointer);
+canvas.addEventListener("pointercancel",endPointer);
+
+updateSelectionUI();
+requestAnimationFrame(animate);
+loadEarth();
+</script>
+
+</body>
+</html>
