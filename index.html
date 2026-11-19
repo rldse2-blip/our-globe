@@ -1,0 +1,1532 @@
+
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OUR GLOBE — Own Your Pixel</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #080d12;
+  color: white;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+}
+
+header {
+  position: absolute;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 16px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(to bottom, rgba(5,10,15,.96), transparent);
+  pointer-events: none;
+}
+
+.logo {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 3px;
+}
+
+.logo span { color: #69b88b; }
+
+.header-text {
+  font-size: 11px;
+  color: #a9b8c4;
+  letter-spacing: 2px;
+}
+
+.account-button {
+  pointer-events: auto;
+  background: rgba(7,14,21,.85);
+  border: 1px solid #527064;
+  color: #79d5a0;
+  padding: 10px 14px;
+  margin: 0;
+  width: auto;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+#map {
+  width: 100vw;
+  height: 100vh;
+  background: #132b3c;
+}
+
+#pixelCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 500;
+  pointer-events: none;
+}
+
+.panel {
+  position: absolute;
+  z-index: 1000;
+  left: 18px;
+  bottom: 20px;
+  width: 270px;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  padding: 17px;
+  border: 1px solid rgba(255,255,255,.20);
+  border-radius: 13px;
+  background: rgba(7,14,21,.58);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  box-shadow: 0 10px 35px rgba(0,0,0,.18);
+}
+
+.panel-title {
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #c0ced8;
+  margin-bottom: 13px;
+}
+
+.stat {
+  display: flex;
+  justify-content: space-between;
+  margin: 9px 0;
+  font-size: 13px;
+}
+
+.stat strong { color: #79d5a0; }
+
+.total {
+  border-top: 1px solid rgba(255,255,255,.25);
+  margin-top: 13px;
+  padding-top: 13px;
+  font-size: 15px;
+}
+
+button {
+  width: 100%;
+  border: 0;
+  border-radius: 7px;
+  padding: 12px;
+  margin-top: 12px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.clear {
+  background: #263642;
+  color: white;
+}
+
+.buy {
+  background: #75c997;
+  color: #07130c;
+}
+
+.select-mode {
+  background: #263642;
+  color: white;
+  border: 1px solid #527064;
+}
+
+.select-mode.active {
+  background: #75c997;
+  color: #07130c;
+  border-color: #75c997;
+}
+
+.hint {
+  font-size: 11px;
+  color: #c0ced8;
+  line-height: 1.5;
+  margin-top: 12px;
+}
+
+#zoomStatus {
+  color: #79d5a0;
+  margin-top: 8px;
+  font-size: 11px;
+}
+
+#databaseStatus {
+  color: #ffc34d;
+  font-size: 11px;
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
+.pixel-info {
+  border-top: 1px solid rgba(255,255,255,.25);
+  margin-top: 15px;
+  padding-top: 14px;
+}
+
+.pixel-info-title {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #79d5a0;
+  margin-bottom: 12px;
+}
+
+.pixel-id {
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 12px;
+}
+
+.pixel-detail {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 12px;
+  color: #b9c7d1;
+}
+
+.pixel-detail strong {
+  color: white;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.pixel-status { font-weight: bold; }
+
+.pixel-placeholder {
+  color: #8c9ba6;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* MY PIXELS */
+
+.my-pixels {
+  border-top: 1px solid rgba(255,255,255,.25);
+  margin-top: 16px;
+  padding-top: 14px;
+}
+
+.my-pixels-title {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #79d5a0;
+  margin-bottom: 10px;
+}
+
+.my-pixels-count {
+  font-size: 23px;
+  font-weight: bold;
+  color: #79d5a0;
+  margin: 8px 0;
+}
+
+.my-pixels-subtitle {
+  color: #a9b8c4;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.my-pixel-list {
+  margin-top: 10px;
+}
+
+.my-pixel-item {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(121,213,160,.25);
+  border-radius: 7px;
+  padding: 10px;
+  margin-top: 8px;
+}
+
+.my-pixel-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.my-pixel-item-top strong {
+  color: #79d5a0;
+}
+
+.my-pixel-item button {
+  background: #75c997;
+  color: #07130c;
+  font-size: 10px;
+  padding: 9px;
+  margin-top: 9px;
+}
+
+.my-pixels-message {
+  color: #a9b8c4;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 10px;
+}
+
+/* ACCOUNT WINDOW */
+
+.auth-overlay {
+  display: none;
+  position: fixed;
+  z-index: 3000;
+  inset: 0;
+  background: rgba(0,0,0,.78);
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.auth-overlay.open { display: flex; }
+
+.auth-card {
+  width: 100%;
+  max-width: 390px;
+  background: #101b24;
+  border: 1px solid rgba(121,213,160,.35);
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 15px 60px rgba(0,0,0,.55);
+}
+
+.auth-heading {
+  font-size: 21px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 7px;
+}
+
+.auth-heading span { color: #79d5a0; }
+
+.auth-subtitle {
+  font-size: 12px;
+  color: #a9b8c4;
+  line-height: 1.5;
+  margin-bottom: 22px;
+}
+
+.auth-label {
+  display: block;
+  color: #b9c7d1;
+  font-size: 11px;
+  margin: 13px 0 7px;
+  letter-spacing: 1px;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 13px;
+  border-radius: 7px;
+  border: 1px solid #354b59;
+  background: #080d12;
+  color: white;
+  outline: none;
+  font-size: 14px;
+}
+
+.auth-input:focus { border-color: #79d5a0; }
+
+.auth-primary {
+  background: #75c997;
+  color: #07130c;
+}
+
+.auth-secondary {
+  background: #263642;
+  color: white;
+}
+
+.auth-close {
+  background: transparent;
+  border: 1px solid #354b59;
+  color: #b9c7d1;
+}
+
+.auth-switch {
+  display: flex;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.auth-switch button {
+  margin-top: 0;
+  font-size: 11px;
+  padding: 10px 5px;
+}
+
+.auth-message {
+  min-height: 35px;
+  margin-top: 13px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #79d5a0;
+  overflow-wrap: anywhere;
+}
+
+.auth-user {
+  font-size: 12px;
+  color: #79d5a0;
+  line-height: 1.5;
+  margin-bottom: 10px;
+  overflow-wrap: anywhere;
+}
+
+@media(max-width:600px) {
+  header { padding: 13px; }
+  .logo { font-size: 17px; }
+  .header-text { display: none; }
+
+  .account-button {
+    font-size: 10px;
+    padding: 9px 11px;
+  }
+
+  .panel {
+    left: 10px;
+    bottom: 12px;
+    width: 235px;
+    max-height: calc(100vh - 75px);
+    padding: 13px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">OUR <span>GLOBE</span></div>
+  <div class="header-text">ONE GLOBE. MILLIONS OF OWNERS.</div>
+  <button class="account-button" id="accountButton" onclick="openAccount()">
+    LOG IN / SIGN UP
+  </button>
+</header>
+
+<div id="map"></div>
+<canvas id="pixelCanvas"></canvas>
+
+<div class="panel">
+  <div class="panel-title">YOUR PIXELS</div>
+
+  <div class="stat">
+    <span>Total pixels</span>
+    <strong>10,000,000</strong>
+  </div>
+
+  <div class="stat">
+    <span>Pixel grid</span>
+    <strong>3162 × 3163*</strong>
+  </div>
+
+  <div class="stat">
+    <span>Price per pixel</span>
+    <strong>€0.10</strong>
+  </div>
+
+  <div class="stat">
+    <span>Selected</span>
+    <strong id="selected">0</strong>
+  </div>
+
+  <div class="stat">
+    <span>Owned</span>
+    <strong id="owned">0</strong>
+  </div>
+
+  <div class="stat total">
+    <span>Total price</span>
+    <strong id="price">€0.00</strong>
+  </div>
+
+  <button id="selectModeButton"
+    class="select-mode"
+    onclick="toggleSelectMode()">
+    SELECT MODE: OFF
+  </button>
+
+  <button class="clear" onclick="clearSelection()">
+    CLEAR SELECTION
+  </button>
+
+  <button class="buy" onclick="showBuyMessage()">
+    BUY PIXELS
+  </button>
+
+  <div class="hint">
+    Normal mode: tap individual pixels.<br>
+    Select mode: drag across multiple pixels.
+  </div>
+
+  <div class="hint">
+    <span style="color:#ffffff">■</span> Available
+    &nbsp;
+    <span style="color:#ffc34d">■</span> Selected
+    &nbsp;
+    <span style="color:#3fae78">■</span> Owned
+  </div>
+
+  <div id="zoomStatus">Zoom in to explore the pixel grid</div>
+
+  <div id="databaseStatus">DATABASE: Connecting...</div>
+
+  <div class="hint">
+    *The last row contains only the remaining pixels.
+  </div>
+
+  <!-- MY PIXELS -->
+
+  <div class="my-pixels">
+    <div class="my-pixels-title">MY PIXELS</div>
+
+    <div class="my-pixels-count" id="myPixelsCount">0</div>
+
+    <div class="my-pixels-subtitle">
+      Pixels connected to your account
+    </div>
+
+    <div id="myPixelsList" class="my-pixel-list">
+      <div class="my-pixels-message">
+        Log in to see your pixels.
+      </div>
+    </div>
+
+    <div id="myPixelsMessage" class="my-pixels-message"></div>
+  </div>
+
+  <div class="pixel-info">
+    <div class="pixel-info-title">SELECTED PIXEL</div>
+
+    <div id="pixelInfoContent">
+      <div class="pixel-placeholder">
+        Click on any pixel on the map to see its information here.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACCOUNT WINDOW -->
+
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+
+    <div class="auth-heading">
+      OUR <span>GLOBE</span>
+    </div>
+
+    <div class="auth-subtitle">
+      Create your account and become part of the global pixel world.
+    </div>
+
+    <div id="authFormArea">
+
+      <label class="auth-label" for="authEmail">EMAIL ADDRESS</label>
+      <input class="auth-input" id="authEmail" type="email"
+        placeholder="your@email.com" autocomplete="email">
+
+      <label class="auth-label" for="authPassword">PASSWORD</label>
+      <input class="auth-input" id="authPassword" type="password"
+        placeholder="At least 6 characters" autocomplete="current-password">
+
+      <button class="auth-primary" id="authSubmit" onclick="submitAuth()">
+        LOG IN
+      </button>
+
+      <div class="auth-switch">
+        <button class="auth-secondary" onclick="setAuthMode('login')">
+          LOG IN
+        </button>
+        <button class="auth-secondary" onclick="setAuthMode('signup')">
+          CREATE ACCOUNT
+        </button>
+      </div>
+
+    </div>
+
+    <div id="loggedInArea" style="display:none">
+      <div class="auth-user" id="loggedInEmail"></div>
+      <button class="auth-primary" onclick="logoutUser()">LOG OUT</button>
+    </div>
+
+    <div class="auth-message" id="authMessage"></div>
+
+    <button class="auth-close" onclick="closeAccount()">CLOSE</button>
+
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+/* =================================
+   PIXEL MAP CONSTANTS
+================================= */
+
+const GRID_WIDTH = 3162;
+const GRID_HEIGHT = 3163;
+const TOTAL_PIXELS = 10000000;
+const PIXEL_PRICE = 0.10;
+
+const WORLD_SIZE = 256;
+const CELL_SIZE = WORLD_SIZE / GRID_HEIGHT;
+
+/* =================================
+   SUPABASE CONNECTION
+================================= */
+
+const SUPABASE_URL = "https://equikvpluaiywxcxdord.supabase.co";
+
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInR5cCI6ImFub24iLCJpYXQiOjE3OTQ5NDg1ODIsImV4cCI6MjExMDUyNDU4Mn0.oHoGGjfKGxhrna4I3_raTqybIIPK2ejJB-uFzerg3pM";
+
+let supabaseClient = null;
+let databaseConnected = false;
+let currentUser = null;
+let authMode = "login";
+
+const databasePixels = new Set();
+const demoOwnedPixels = new Set();
+let myPixels = [];
+
+const selectedPixels = new Set();
+
+let selectMode = false;
+let drawingSelection = false;
+let activePointerId = null;
+let visitedPixels = new Set();
+let lastGridCell = null;
+let inspectedPixelId = null;
+
+async function connectDatabase() {
+  const status = document.getElementById("databaseStatus");
+
+  try {
+    if (!window.supabase) {
+      throw new Error("Supabase library could not be loaded.");
+    }
+
+    supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY
+    );
+
+    const { data, error } = await supabaseClient
+      .from("pixels")
+      .select("pixel_id,color")
+      .limit(1000);
+
+    if (error) throw error;
+
+    databaseConnected = true;
+    databasePixels.clear();
+
+    data.forEach(function(pixel) {
+      const internalID = Number(pixel.pixel_id) - 1;
+
+      if (
+        Number.isInteger(internalID) &&
+        internalID >= 0 &&
+        internalID < TOTAL_PIXELS
+      ) {
+        databasePixels.add(internalID);
+      }
+    });
+
+    status.style.color = "#79d5a0";
+    status.textContent =
+      "DATABASE: Connected ✓ | " +
+      databasePixels.size.toLocaleString("en-US") +
+      " pixels loaded";
+
+    updateStats();
+    drawPixels();
+
+  } catch (error) {
+    databaseConnected = false;
+    status.style.color = "#ff8b8b";
+    status.textContent =
+      "DATABASE: Connection failed — " +
+      (error.message || "Unknown error");
+
+    console.error("Supabase connection error:", error);
+  }
+}
+
+/* =================================
+   MY PIXELS
+================================= */
+
+function clearMyPixels() {
+  myPixels = [];
+
+  document.getElementById("myPixelsCount").textContent = "0";
+
+  document.getElementById("myPixelsList").innerHTML =
+    '<div class="my-pixels-message">Log in to see your pixels.</div>';
+
+  document.getElementById("myPixelsMessage").textContent = "";
+}
+
+async function loadMyPixels() {
+  const countElement = document.getElementById("myPixelsCount");
+  const listElement = document.getElementById("myPixelsList");
+  const messageElement = document.getElementById("myPixelsMessage");
+
+  if (!currentUser || !supabaseClient) {
+    clearMyPixels();
+    return;
+  }
+
+  countElement.textContent = "...";
+  listElement.innerHTML =
+    '<div class="my-pixels-message">Loading your pixels...</div>';
+  messageElement.textContent = "";
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("pixels")
+      .select("pixel_id,color")
+      .eq("owner_id", currentUser.id)
+      .order("pixel_id", { ascending: true })
+      .limit(1000);
+
+    if (error) throw error;
+
+    myPixels = data || [];
+
+    // Ensure that the user's pixels are also visible
+    // in the green pixel layer on the map.
+    myPixels.forEach(function(pixel) {
+      const internalID = Number(pixel.pixel_id) - 1;
+
+      if (
+        Number.isInteger(internalID) &&
+        internalID >= 0 &&
+        internalID < TOTAL_PIXELS
+      ) {
+        databasePixels.add(internalID);
+      }
+    });
+
+    countElement.textContent =
+      myPixels.length.toLocaleString("en-US");
+
+    if (myPixels.length === 0) {
+      listElement.innerHTML =
+        '<div class="my-pixels-message">You do not own any pixels yet.</div>';
+    } else {
+      listElement.innerHTML = "";
+
+      myPixels.forEach(function(pixel) {
+        const item = document.createElement("div");
+        item.className = "my-pixel-item";
+
+        const top = document.createElement("div");
+        top.className = "my-pixel-item-top";
+
+        const pixelName = document.createElement("strong");
+        pixelName.textContent =
+          "PIXEL #" + Number(pixel.pixel_id).toLocaleString("en-US");
+
+        const colorText = document.createElement("span");
+        colorText.textContent = pixel.color || "#3FAE78";
+        colorText.style.color = "#79d5a0";
+
+        top.appendChild(pixelName);
+        top.appendChild(colorText);
+
+        const goButton = document.createElement("button");
+        goButton.textContent = "GO TO PIXEL";
+        goButton.type = "button";
+
+        goButton.addEventListener("click", function() {
+          goToPixel(Number(pixel.pixel_id));
+        });
+
+        item.appendChild(top);
+        item.appendChild(goButton);
+
+        listElement.appendChild(item);
+      });
+    }
+
+    updateStats();
+    drawPixels();
+
+  } catch (error) {
+    countElement.textContent = "!";
+    listElement.innerHTML =
+      '<div class="my-pixels-message">Could not load your pixels.</div>';
+
+    messageElement.textContent = error.message || "Unknown error";
+
+    console.error("My pixels loading error:", error);
+  }
+}
+
+function goToPixel(publicID) {
+  const internalID = publicID - 1;
+
+  if (
+    !Number.isInteger(internalID) ||
+    internalID < 0 ||
+    internalID >= TOTAL_PIXELS
+  ) {
+    return;
+  }
+
+  const coordinates = getPixelCoordinates(internalID);
+
+  inspectedPixelId = internalID;
+
+  map.setView(
+    coordinates,
+    map.getMaxZoom(),
+    { animate: true }
+  );
+
+  showPixelInfo(internalID);
+
+  document.getElementById("zoomStatus").textContent =
+    "Viewing your pixel #" +
+    publicID.toLocaleString("en-US");
+}
+
+/* =================================
+   USER AUTHENTICATION
+================================= */
+
+function openAccount() {
+  document.getElementById("authOverlay").classList.add("open");
+  updateAuthDisplay();
+}
+
+function closeAccount() {
+  document.getElementById("authOverlay").classList.remove("open");
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+
+  document.getElementById("authSubmit").textContent =
+    mode === "signup" ? "CREATE ACCOUNT" : "LOG IN";
+
+  document.getElementById("authMessage").textContent =
+    mode === "signup"
+      ? "Create your OUR GLOBE account."
+      : "Log in to your OUR GLOBE account.";
+
+  document.getElementById("authPassword").autocomplete =
+    mode === "signup" ? "new-password" : "current-password";
+}
+
+function updateAuthDisplay() {
+  const accountButton = document.getElementById("accountButton");
+  const formArea = document.getElementById("authFormArea");
+  const loggedInArea = document.getElementById("loggedInArea");
+  const loggedInEmail = document.getElementById("loggedInEmail");
+
+  if (currentUser) {
+    accountButton.textContent = "MY ACCOUNT";
+    formArea.style.display = "none";
+    loggedInArea.style.display = "block";
+
+    loggedInEmail.textContent =
+      "SIGNED IN AS: " + currentUser.email;
+
+  } else {
+    accountButton.textContent = "LOG IN / SIGN UP";
+    formArea.style.display = "block";
+    loggedInArea.style.display = "none";
+  }
+}
+
+async function initializeAuth() {
+  if (!supabaseClient) return;
+
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+
+    if (error) throw error;
+
+    currentUser = data.session ? data.session.user : null;
+
+    updateAuthDisplay();
+    await loadMyPixels();
+
+    supabaseClient.auth.onAuthStateChange(function(event, session) {
+      currentUser = session ? session.user : null;
+      updateAuthDisplay();
+
+      // Load the new user's pixels after login.
+      // Clear the list after logout.
+      if (currentUser) {
+        loadMyPixels();
+      } else {
+        clearMyPixels();
+      }
+
+      console.log("Authentication event:", event);
+    });
+
+  } catch (error) {
+    console.error("Authentication initialization error:", error);
+  }
+}
+
+async function submitAuth() {
+  if (!supabaseClient) {
+    document.getElementById("authMessage").textContent =
+      "Database connection is not ready.";
+    return;
+  }
+
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
+  const message = document.getElementById("authMessage");
+  const submitButton = document.getElementById("authSubmit");
+
+  if (!email || !password) {
+    message.style.color = "#ff8b8b";
+    message.textContent = "Please enter your email and password.";
+    return;
+  }
+
+  if (password.length < 6) {
+    message.style.color = "#ff8b8b";
+    message.textContent = "Password must contain at least 6 characters.";
+    return;
+  }
+
+  submitButton.disabled = true;
+  submitButton.textContent = "PLEASE WAIT...";
+  message.style.color = "#79d5a0";
+  message.textContent = "Connecting to OUR GLOBE...";
+
+  try {
+    if (authMode === "signup") {
+      const { data, error } = await supabaseClient.auth.signUp({
+        email: email,
+        password: password
+      });
+
+      if (error) throw error;
+
+      if (data.session) {
+        currentUser = data.session.user;
+        updateAuthDisplay();
+        await loadMyPixels();
+
+        message.textContent =
+          "Account created successfully! Welcome to OUR GLOBE.";
+
+      } else {
+        message.textContent =
+          "Registration received! Please check your email and confirm your account before logging in.";
+      }
+
+    } else {
+      const { data, error } =
+        await supabaseClient.auth.signInWithPassword({
+          email: email,
+          password: password
+        });
+
+      if (error) throw error;
+
+      currentUser = data.user;
+      updateAuthDisplay();
+      await loadMyPixels();
+
+      message.textContent = "Successfully logged in!";
+    }
+
+  } catch (error) {
+    message.style.color = "#ff8b8b";
+    message.textContent =
+      error.message || "Authentication failed.";
+
+  } finally {
+    submitButton.disabled = false;
+
+    submitButton.textContent =
+      authMode === "signup" ? "CREATE ACCOUNT" : "LOG IN";
+  }
+}
+
+async function logoutUser() {
+  if (!supabaseClient) return;
+
+  const message = document.getElementById("authMessage");
+
+  try {
+    const { error } = await supabaseClient.auth.signOut();
+
+    if (error) throw error;
+
+    currentUser = null;
+    updateAuthDisplay();
+    clearMyPixels();
+
+    message.style.color = "#79d5a0";
+    message.textContent = "You have successfully logged out.";
+
+  } catch (error) {
+    message.style.color = "#ff8b8b";
+    message.textContent = error.message;
+  }
+}
+
+/* =================================
+   PIXEL MAP
+================================= */
+
+function isOwned(id) {
+  return databasePixels.has(id) || demoOwnedPixels.has(id);
+}
+
+const map = L.map("map", {
+  center: [25, 10],
+  zoom: 2,
+  minZoom: 2,
+  maxZoom: 17,
+  worldCopyJump: true
+});
+
+L.tileLayer(
+  "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+  {
+    maxZoom: 17,
+    attribution:
+      'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Map style: © OpenTopoMap',
+    subdomains: "abc"
+  }
+).addTo(map);
+
+const canvas = document.getElementById("pixelCanvas");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas() {
+  const size = map.getSize();
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = Math.round(size.x * dpr);
+  canvas.height = Math.round(size.y * dpr);
+
+  canvas.style.width = size.x + "px";
+  canvas.style.height = size.y + "px";
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  drawPixels();
+}
+
+function coordinatesToGridCell(latlng) {
+  const point = map.project(latlng, 0);
+
+  const col = Math.floor(point.x / CELL_SIZE);
+  const row = Math.floor(point.y / CELL_SIZE);
+
+  if (
+    col < 0 ||
+    col >= GRID_WIDTH ||
+    row < 0 ||
+    row >= GRID_HEIGHT
+  ) {
+    return null;
+  }
+
+  const id = row * GRID_WIDTH + col;
+
+  if (id < 0 || id >= TOTAL_PIXELS) {
+    return null;
+  }
+
+  return { col, row, id };
+}
+
+function coordinatesToPixel(latlng) {
+  const cell = coordinatesToGridCell(latlng);
+  return cell ? cell.id : null;
+}
+
+function getPublicPixelID(id) {
+  return id + 1;
+}
+
+function getPixelCoordinates(id) {
+  const row = Math.floor(id / GRID_WIDTH);
+  const col = id % GRID_WIDTH;
+
+  const centerX = (col + 0.5) * CELL_SIZE;
+  const centerY = (row + 0.5) * CELL_SIZE;
+
+  return map.unproject(
+    L.point(centerX, centerY),
+    0
+  );
+}
+
+/* =================================
+   DRAW PIXELS
+================================= */
+
+function drawPixels() {
+  const size = map.getSize();
+
+  ctx.clearRect(0, 0, size.x, size.y);
+
+  const zoom = map.getZoom();
+  const screenCellSize = CELL_SIZE * Math.pow(2, zoom);
+
+  if (screenCellSize < 2) {
+    document.getElementById("zoomStatus").textContent =
+      "Zoom in to see individual square pixels";
+    return;
+  }
+
+  const bounds = map.getBounds();
+
+  const northWest = map.project(bounds.getNorthWest(), 0);
+  const southEast = map.project(bounds.getSouthEast(), 0);
+
+  const minX = Math.max(0, Math.min(northWest.x, southEast.x));
+  const maxX = Math.min(WORLD_SIZE, Math.max(northWest.x, southEast.x));
+  const minY = Math.max(0, Math.min(northWest.y, southEast.y));
+  const maxY = Math.min(WORLD_SIZE, Math.max(northWest.y, southEast.y));
+
+  if (minX >= maxX || minY >= maxY) return;
+
+  const firstCol = Math.max(0, Math.floor(minX / CELL_SIZE));
+  const lastCol = Math.min(GRID_WIDTH - 1, Math.floor(maxX / CELL_SIZE));
+  const firstRow = Math.max(0, Math.floor(minY / CELL_SIZE));
+  const lastRow = Math.min(GRID_HEIGHT - 1, Math.floor(maxY / CELL_SIZE));
+
+  const estimatedCells =
+    (lastCol - firstCol + 1) *
+    (lastRow - firstRow + 1);
+
+  if (estimatedCells > 120000) {
+    document.getElementById("zoomStatus").textContent =
+      "Zoom in to reveal individual pixels";
+    return;
+  }
+
+  const worldOrigin = map.latLngToContainerPoint(
+    map.unproject(L.point(0, 0), 0)
+  );
+
+  let visibleCells = 0;
+
+  ctx.lineWidth = 0.5;
+
+  for (let row = firstRow; row <= lastRow; row++) {
+    for (let col = firstCol; col <= lastCol; col++) {
+      const id = row * GRID_WIDTH + col;
+
+      if (id >= TOTAL_PIXELS) continue;
+
+      const x = worldOrigin.x + col * screenCellSize;
+      const y = worldOrigin.y + row * screenCellSize;
+
+      visibleCells++;
+
+      const drawSize = screenCellSize + 0.35;
+
+      if (isOwned(id)) {
+        ctx.fillStyle = "rgba(63,174,120,0.95)";
+        ctx.fillRect(x - 0.15, y - 0.15, drawSize, drawSize);
+
+        ctx.strokeStyle = "#b2f5d1";
+        ctx.strokeRect(x, y, screenCellSize, screenCellSize);
+
+      } else if (selectedPixels.has(id)) {
+        ctx.fillStyle = "rgba(255,190,65,0.9)";
+        ctx.fillRect(x - 0.15, y - 0.15, drawSize, drawSize);
+
+        ctx.strokeStyle = "#fff0b0";
+        ctx.strokeRect(x, y, screenCellSize, screenCellSize);
+
+      } else {
+        ctx.fillStyle = "rgba(255,255,255,0.025)";
+        ctx.fillRect(x - 0.15, y - 0.15, drawSize, drawSize);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        ctx.strokeRect(x, y, screenCellSize, screenCellSize);
+      }
+
+      if (id === inspectedPixelId) {
+        ctx.save();
+
+        ctx.lineWidth = Math.max(2, screenCellSize * 0.12);
+        ctx.strokeStyle = "#ffffff";
+        ctx.shadowColor = "#39e6dc";
+        ctx.shadowBlur = Math.max(5, screenCellSize * 0.35);
+
+        ctx.strokeRect(
+          x + 0.5,
+          y + 0.5,
+          Math.max(0, screenCellSize - 1),
+          Math.max(0, screenCellSize - 1)
+        );
+
+        ctx.restore();
+      }
+    }
+  }
+
+  document.getElementById("zoomStatus").textContent =
+    visibleCells.toLocaleString("en-US") +
+    " visible square pixels";
+}
+
+/* =================================
+   PIXEL INFORMATION
+================================= */
+
+function showPixelInfo(id) {
+  inspectedPixelId = id;
+
+  const publicID = getPublicPixelID(id);
+  const coordinates = getPixelCoordinates(id);
+
+  let status = "Available";
+  let statusColor = "#79d5a0";
+
+  if (databasePixels.has(id)) {
+    status = "Owned (database)";
+    statusColor = "#3fae78";
+  } else if (demoOwnedPixels.has(id)) {
+    status = "Owned (demo)";
+    statusColor = "#3fae78";
+  } else if (selectedPixels.has(id)) {
+    status = "Selected";
+    statusColor = "#ffc34d";
+  }
+
+  document.getElementById("pixelInfoContent").innerHTML = `
+    <div class="pixel-id">
+      #${publicID.toLocaleString("en-US")}
+    </div>
+
+    <div class="pixel-detail">
+      <span>Latitude</span>
+      <strong>${coordinates.lat.toFixed(6)}°</strong>
+    </div>
+
+    <div class="pixel-detail">
+      <span>Longitude</span>
+      <strong>${coordinates.lng.toFixed(6)}°</strong>
+    </div>
+
+    <div class="pixel-detail">
+      <span>Price</span>
+      <strong>€${PIXEL_PRICE.toFixed(2)}</strong>
+    </div>
+
+    <div class="pixel-detail">
+      <span>Status</span>
+      <strong class="pixel-status" style="color:${statusColor}">
+        ${status}
+      </strong>
+    </div>
+  `;
+
+  drawPixels();
+}
+
+/* =================================
+   SELECTION MODE
+================================= */
+
+function toggleSelectMode() {
+  selectMode = !selectMode;
+
+  const button = document.getElementById("selectModeButton");
+  const container = map.getContainer();
+
+  if (selectMode) {
+    button.textContent = "SELECT MODE: ON";
+    button.classList.add("active");
+
+    map.dragging.disable();
+    map.touchZoom.disable();
+    container.style.touchAction = "none";
+  } else {
+    button.textContent = "SELECT MODE: OFF";
+    button.classList.remove("active");
+
+    map.dragging.enable();
+    map.touchZoom.enable();
+    container.style.touchAction = "";
+
+    drawingSelection = false;
+    activePointerId = null;
+    lastGridCell = null;
+    visitedPixels.clear();
+  }
+}
+
+function togglePixel(id) {
+  if (
+    id === null ||
+    visitedPixels.has(id) ||
+    isOwned(id)
+  ) {
+    return false;
+  }
+
+  visitedPixels.add(id);
+
+  if (selectedPixels.has(id)) {
+    selectedPixels.delete(id);
+  } else {
+    selectedPixels.add(id);
+  }
+
+  return true;
+}
+
+/* =================================
+   DRAG SELECTION
+================================= */
+
+function drawGridLine(start, end) {
+  let x = start.col;
+  let y = start.row;
+
+  const dx = Math.abs(end.col - start.col);
+  const dy = Math.abs(end.row - start.row);
+
+  const sx = start.col < end.col ? 1 : -1;
+  const sy = start.row < end.row ? 1 : -1;
+
+  let error = dx - dy;
+  let changed = false;
+
+  while (true) {
+    const id = y * GRID_WIDTH + x;
+
+    if (id >= 0 && id < TOTAL_PIXELS) {
+      if (togglePixel(id)) changed = true;
+    }
+
+    if (x === end.col && y === end.row) break;
+
+    const doubleError = 2 * error;
+
+    if (doubleError > -dy) {
+      error -= dy;
+      x += sx;
+    }
+
+    if (doubleError < dx) {
+      error += dx;
+      y += sy;
+    }
+  }
+
+  return changed;
+}
+
+function pointerToGridCell(event) {
+  const rect = map.getContainer().getBoundingClientRect();
+
+  const point = L.point(
+    event.clientX - rect.left,
+    event.clientY - rect.top
+  );
+
+  const latlng = map.containerPointToLatLng(point);
+
+  return coordinatesToGridCell(latlng);
+}
+
+function selectAtPointer(event) {
+  const currentCell = pointerToGridCell(event);
+
+  if (!currentCell) {
+    lastGridCell = null;
+    return;
+  }
+
+  let changed = false;
+
+  if (lastGridCell) {
+    changed = drawGridLine(lastGridCell, currentCell);
+  } else {
+    changed = togglePixel(currentCell.id);
+  }
+
+  lastGridCell = currentCell;
+
+  if (changed) {
+    updateStats();
+    drawPixels();
+  }
+}
+
+const mapContainer = map.getContainer();
+
+mapContainer.addEventListener("pointerdown", function(event) {
+  if (!selectMode) return;
+  if (event.pointerType === "mouse" && event.button !== 0) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  drawingSelection = true;
+  activePointerId = event.pointerId;
+  visitedPixels.clear();
+  lastGridCell = null;
+
+  try {
+    mapContainer.setPointerCapture(event.pointerId);
+  } catch (error) {}
+
+  selectAtPointer(event);
+}, true);
+
+mapContainer.addEventListener("pointermove", function(event) {
+  if (!selectMode || !drawingSelection) return;
+  if (event.pointerId !== activePointerId) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  selectAtPointer(event);
+}, true);
+
+function finishDrawing(event) {
+  if (!drawingSelection) return;
+  if (event && event.pointerId !== activePointerId) return;
+
+  drawingSelection = false;
+  activePointerId = null;
+  lastGridCell = null;
+  visitedPixels.clear();
+}
+
+mapContainer.addEventListener("pointerup", finishDrawing, true);
+mapContainer.addEventListener("pointercancel", finishDrawing, true);
+mapContainer.addEventListener("lostpointercapture", finishDrawing, true);
+
+/* =================================
+   NORMAL PIXEL SELECTION
+================================= */
+
+map.on("click", function(event) {
+  if (selectMode) return;
+
+  const id = coordinatesToPixel(event.latlng);
+
+  if (id === null) return;
+
+  if (!isOwned(id)) {
+    if (selectedPixels.has(id)) {
+      selectedPixels.delete(id);
+    } else {
+      selectedPixels.add(id);
+    }
+  }
+
+  updateStats();
+  drawPixels();
+  showPixelInfo(id);
+});
+
+/* =================================
+   STATISTICS
+================================= */
+
+function updateStats() {
+  const count = selectedPixels.size;
+  const ownedCount = databasePixels.size + demoOwnedPixels.size;
+
+  document.getElementById("selected").textContent =
+    count.toLocaleString("en-US");
+
+  document.getElementById("owned").textContent =
+    ownedCount.toLocaleString("en-US");
+
+  document.getElementById("price").textContent =
+    "€" + (count * PIXEL_PRICE).toFixed(2);
+}
+
+function clearSelection() {
+  selectedPixels.clear();
+  visitedPixels.clear();
+
+  updateStats();
+  drawPixels();
+}
+
+/* =================================
+   DEMO PURCHASE
+================================= */
+
+function showBuyMessage() {
+  if (selectedPixels.size === 0) {
+    alert("Please select some pixels first.");
+    return;
+  }
+
+  const count = selectedPixels.size;
+  const total = count * PIXEL_PRICE;
+
+  const confirmed = confirm(
+    "You are about to mark " +
+    count.toLocaleString("en-US") +
+    " pixels as OWNED (demo).\n\n" +
+    "Total: €" + total.toFixed(2) +
+    "\n\nThis is a demonstration only. No real payment will be made and no database purchase will be created."
+  );
+
+  if (!confirmed) return;
+
+  selectedPixels.forEach(function(id) {
+    demoOwnedPixels.add(id);
+  });
+
+  selectedPixels.clear();
+  visitedPixels.clear();
+
+  updateStats();
+  drawPixels();
+
+  alert(
+    "Demo complete!\n\n" +
+    count.toLocaleString("en-US") +
+    " pixels are marked as OWNED (demo).\n\n" +
+    "This does not create a real database purchase."
+  );
+}
+
+/* =================================
+   MAP EVENTS AND STARTUP
+================================= */
+
+map.on("moveend zoomend", drawPixels);
+map.on("resize", resizeCanvas);
+
+window.addEventListener("resize", resizeCanvas);
+
+setTimeout(resizeCanvas, 150);
+
+updateStats();
+
+connectDatabase().then(initializeAuth);
+
+</script>
+
+</body>
+</html>
